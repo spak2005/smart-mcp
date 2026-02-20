@@ -7,10 +7,10 @@ todos:
     status: completed
   - id: commit-02
     content: "feat: create smartmcp package with __init__.py"
-    status: in_progress
+    status: completed
   - id: commit-03
     content: "feat: add configuration schema and JSON loading"
-    status: pending
+    status: in_progress
   - id: commit-04
     content: "feat: add CLI argument parsing entry point"
     status: pending
