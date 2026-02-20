@@ -19,10 +19,10 @@ todos:
     status: completed
   - id: commit-06
     content: "feat: add upstream server connection manager"
-    status: in_progress
+    status: completed
   - id: commit-07
     content: "feat: add tool schema collection from connected servers"
-    status: pending
+    status: in_progress
   - id: commit-08
     content: "feat: add server-name prefixing for tool names"
     status: pending
