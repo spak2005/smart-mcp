@@ -54,3 +54,26 @@ class EmbeddingIndex:
         self._index = faiss.IndexFlatIP(dimension)
         self._index.add(embeddings)
         logger.info("Built FAISS index with %d tools (dim=%d)", len(self._tools), dimension)
+
+    def search(self, query: str, top_k: int = 3) -> list[tuple[types.Tool, float]]:
+        """Search the index for tools most relevant to the query.
+
+        Returns a list of (tool, score) tuples, highest score first.
+        """
+        if self._index is None or not self._tools:
+            return []
+
+        top_k = min(top_k, len(self._tools))
+        query_embedding = self._model.encode([query], convert_to_numpy=True)
+        query_embedding = query_embedding.astype(np.float32)
+        faiss.normalize_L2(query_embedding)
+        scores, indices = self._index.search(query_embedding, top_k)
+
+        results: list[tuple[types.Tool, float]] = []
+        for i, idx in enumerate(indices[0]):
+            if idx < 0:
+                continue
+            results.append((self._tools[idx], float(scores[0][i])))
+
+        logger.info("Search '%s' returned %d result(s)", query, len(results))
+        return results

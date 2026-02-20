@@ -34,10 +34,10 @@ todos:
     status: completed
   - id: commit-11
     content: "feat: add FAISS index building from tool embeddings"
-    status: in_progress
+    status: completed
   - id: commit-12
     content: "feat: add semantic search query function"
-    status: pending
+    status: in_progress
   - id: commit-13
     content: "feat: create MCP server with lifespan initialization"
     status: pending
