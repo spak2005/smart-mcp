@@ -10,10 +10,10 @@ todos:
     status: completed
   - id: commit-03
     content: "feat: add configuration schema and JSON loading"
-    status: in_progress
+    status: completed
   - id: commit-04
     content: "feat: add CLI argument parsing entry point"
-    status: pending
+    status: in_progress
   - id: commit-05
     content: "feat: add __main__.py for python -m support"
     status: pending
