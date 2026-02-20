@@ -25,10 +25,10 @@ todos:
     status: completed
   - id: commit-08
     content: "feat: add server-name prefixing for tool names"
-    status: in_progress
+    status: completed
   - id: commit-09
     content: "feat: add tool text extraction for embedding input"
-    status: pending
+    status: in_progress
   - id: commit-10
     content: "feat: add embedding model loader"
     status: pending
