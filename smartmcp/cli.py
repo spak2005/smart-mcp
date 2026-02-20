@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import logging
+
 import click
 
 from smartmcp.config import load_config
+from smartmcp.server import run_server
 
 
 @click.command()
@@ -17,5 +20,6 @@ from smartmcp.config import load_config
 )
 def main(config_path: str) -> None:
     """smartmcp — Intelligent MCP tool routing."""
+    logging.basicConfig(level=logging.INFO, format="%(name)s — %(message)s")
     config = load_config(config_path)
-    click.echo(f"Loaded {len(config.servers)} server(s) from config")
+    run_server(config)
