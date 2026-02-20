@@ -22,10 +22,10 @@ todos:
     status: completed
   - id: commit-07
     content: "feat: add tool schema collection from connected servers"
-    status: in_progress
+    status: completed
   - id: commit-08
     content: "feat: add server-name prefixing for tool names"
-    status: pending
+    status: in_progress
   - id: commit-09
     content: "feat: add tool text extraction for embedding input"
     status: pending

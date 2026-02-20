@@ -12,6 +12,21 @@ from smartmcp.config import SmartMCPConfig
 
 logger = logging.getLogger(__name__)
 
+SEPARATOR = "__"
+
+
+def prefix_tool_name(server_name: str, tool_name: str) -> str:
+    """Create a prefixed tool name: 'servername__toolname'."""
+    return f"{server_name}{SEPARATOR}{tool_name}"
+
+
+def parse_prefixed_name(prefixed: str) -> tuple[str, str]:
+    """Split a prefixed tool name back into (server_name, tool_name)."""
+    parts = prefixed.split(SEPARATOR, maxsplit=1)
+    if len(parts) != 2:
+        raise ValueError(f"Invalid prefixed tool name: {prefixed}")
+    return parts[0], parts[1]
+
 
 class UpstreamManager:
     """Manages connections to upstream MCP servers."""
@@ -40,13 +55,19 @@ class UpstreamManager:
     async def collect_tools(self) -> list[tuple[str, types.Tool]]:
         """Fetch tool schemas from all connected upstream servers.
 
-        Returns a list of (server_name, tool) tuples.
+        Tool names are prefixed with 'servername__' to avoid collisions.
+        Returns a list of (server_name, prefixed_tool) tuples.
         """
         all_tools: list[tuple[str, types.Tool]] = []
         for name, session in self.sessions.items():
             result = await session.list_tools()
             for tool in result.tools:
-                all_tools.append((name, tool))
+                prefixed = types.Tool(
+                    name=prefix_tool_name(name, tool.name),
+                    description=tool.description,
+                    inputSchema=tool.inputSchema,
+                )
+                all_tools.append((name, prefixed))
             logger.info("Collected %d tool(s) from server: %s", len(result.tools), name)
         return all_tools
 
