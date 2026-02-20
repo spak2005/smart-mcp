@@ -12,9 +12,10 @@ build/
 venv/
 env/
 
-# IDE
+# IDE / Editor
 .vscode/
 .idea/
+.cursor/
 
 # OS
 .DS_Store
