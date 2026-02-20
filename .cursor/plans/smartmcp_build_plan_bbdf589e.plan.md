@@ -31,10 +31,10 @@ todos:
     status: completed
   - id: commit-10
     content: "feat: add embedding model loader"
-    status: in_progress
+    status: completed
   - id: commit-11
     content: "feat: add FAISS index building from tool embeddings"
-    status: pending
+    status: in_progress
   - id: commit-12
     content: "feat: add semantic search query function"
     status: pending
