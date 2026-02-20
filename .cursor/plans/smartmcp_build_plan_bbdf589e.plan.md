@@ -28,10 +28,10 @@ todos:
     status: completed
   - id: commit-09
     content: "feat: add tool text extraction for embedding input"
-    status: in_progress
+    status: completed
   - id: commit-10
     content: "feat: add embedding model loader"
-    status: pending
+    status: in_progress
   - id: commit-11
     content: "feat: add FAISS index building from tool embeddings"
     status: pending
