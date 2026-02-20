@@ -112,6 +112,7 @@ async def handle_call_tool(
         results = state.index.search(query, top_k=top_k)
         state.active_tools = [tool for tool, _ in results]
         logger.info("Active tools updated: %d tool(s)", len(state.active_tools))
+        await ctx.session.send_tool_list_changed()
 
         lines = [f"Found {len(results)} matching tool(s). They are now available to call:\n"]
         for tool, score in results:

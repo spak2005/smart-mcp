@@ -46,10 +46,10 @@ todos:
     status: completed
   - id: commit-15
     content: "feat: implement dynamic tool list management"
-    status: in_progress
+    status: completed
   - id: commit-16
     content: "feat: send tool_list_changed notification after search"
-    status: pending
+    status: in_progress
   - id: commit-17
     content: "feat: implement tool call proxying to upstream servers"
     status: pending
