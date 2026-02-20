@@ -9,11 +9,8 @@ from typing import Any
 
 import anyio
 from mcp import types
-from mcp.server import Server as MCPServer
-from mcp.server.lowlevel.server import NotificationOptions
+from mcp.server.lowlevel.server import Server as MCPServer, NotificationOptions
 from mcp.server.stdio import stdio_server
-
-from mcp.server.context import ServerRequestContext
 
 from smartmcp.config import SmartMCPConfig
 from smartmcp.embedding import EmbeddingIndex
@@ -63,102 +60,78 @@ class SmartMCPState:
         self.active_tools: list[types.Tool] = []
 
 
-@asynccontextmanager
-async def smartmcp_lifespan(server: MCPServer, config: SmartMCPConfig) -> AsyncIterator[SmartMCPState]:
-    """Startup: connect upstream servers, collect tools, build index."""
-    upstream = UpstreamManager()
-    failed = await upstream.connect_all(config)
-    if failed:
-        logger.warning(
-            "Some servers failed to connect: %s. Continuing with %d server(s).",
-            ", ".join(failed),
-            len(upstream.sessions),
-        )
-
-    raw_tools = await upstream.collect_tools()
-    tools_only = [tool for _, tool in raw_tools]
-
-    index = EmbeddingIndex(config.embedding_model)
-    index.build_index(tools_only)
-
-    logger.info("smartmcp ready — %d tools indexed from %d server(s)", len(tools_only), len(upstream.sessions))
-
-    try:
-        yield SmartMCPState(
-            upstream=upstream,
-            index=index,
-            all_tools=raw_tools,
-            config=config,
-        )
-    finally:
-        await upstream.close()
-
-
-async def handle_list_tools(
-    ctx: ServerRequestContext[SmartMCPState], params: types.PaginatedRequestParams | None
-) -> types.ListToolsResult:
-    state: SmartMCPState = ctx.lifespan_context
-    return types.ListToolsResult(tools=[SEARCH_TOOLS_SCHEMA] + state.active_tools)
-
-
-async def handle_call_tool(
-    ctx: ServerRequestContext[SmartMCPState], params: types.CallToolRequestParams
-) -> types.CallToolResult:
-    state: SmartMCPState = ctx.lifespan_context
-
-    if params.name == SEARCH_TOOLS_NAME:
-        args = params.arguments or {}
-        query = args.get("query", "")
-        top_k = args.get("top_k", state.config.top_k)
-        if not query:
-            return types.CallToolResult(
-                content=[types.TextContent(type="text", text="Error: 'query' is required")]
-            )
-
-        results = state.index.search(query, top_k=top_k)
-        state.active_tools = [tool for tool, _ in results]
-        logger.info("Active tools updated: %d tool(s)", len(state.active_tools))
-        await ctx.session.send_tool_list_changed()
-
-        lines = [f"Found {len(results)} matching tool(s). They are now available to call:\n"]
-        for tool, score in results:
-            lines.append(f"- {tool.name} (score: {score:.3f}): {tool.description}")
-        return types.CallToolResult(
-            content=[types.TextContent(type="text", text="\n".join(lines))]
-        )
-
-    try:
-        server_name, original_name = parse_prefixed_name(params.name)
-    except ValueError:
-        return types.CallToolResult(
-            content=[types.TextContent(type="text", text=f"Unknown tool: {params.name}")]
-        )
-
-    session = state.upstream.sessions.get(server_name)
-    if not session:
-        return types.CallToolResult(
-            content=[types.TextContent(type="text", text=f"No upstream server: {server_name}")]
-        )
-
-    logger.info("Proxying tool call %s -> %s on %s", params.name, original_name, server_name)
-    result = await session.call_tool(original_name, params.arguments or {})
-    return types.CallToolResult(content=result.content)
-
-
 def run_server(config: SmartMCPConfig) -> None:
     """Create and run the smartmcp MCP server over stdio."""
 
     @asynccontextmanager
     async def lifespan(server: MCPServer) -> AsyncIterator[SmartMCPState]:
-        async with smartmcp_lifespan(server, config) as state:
-            yield state
+        upstream = UpstreamManager()
+        failed = await upstream.connect_all(config)
+        if failed:
+            logger.warning(
+                "Some servers failed to connect: %s. Continuing with %d server(s).",
+                ", ".join(failed),
+                len(upstream.sessions),
+            )
 
-    app = MCPServer(
-        "smartmcp",
-        lifespan=lifespan,
-        on_list_tools=handle_list_tools,
-        on_call_tool=handle_call_tool,
-    )
+        raw_tools = await upstream.collect_tools()
+        tools_only = [tool for _, tool in raw_tools]
+
+        index = EmbeddingIndex(config.embedding_model)
+        index.build_index(tools_only)
+
+        logger.info("smartmcp ready — %d tools indexed from %d server(s)", len(tools_only), len(upstream.sessions))
+
+        try:
+            yield SmartMCPState(
+                upstream=upstream,
+                index=index,
+                all_tools=raw_tools,
+                config=config,
+            )
+        finally:
+            await upstream.close()
+
+    app = MCPServer("smartmcp", lifespan=lifespan)
+
+    @app.list_tools()
+    async def handle_list_tools() -> list[types.Tool]:
+        state: SmartMCPState = app.request_context.lifespan_context
+        return [SEARCH_TOOLS_SCHEMA] + state.active_tools
+
+    @app.call_tool()
+    async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+        state: SmartMCPState = app.request_context.lifespan_context
+        session = app.request_context.session
+
+        if name == SEARCH_TOOLS_NAME:
+            query = arguments.get("query", "")
+            top_k = arguments.get("top_k", state.config.top_k)
+            if not query:
+                return [types.TextContent(type="text", text="Error: 'query' is required")]
+
+            results = state.index.search(query, top_k=top_k)
+            state.active_tools = [tool for tool, _ in results]
+            logger.info("Active tools updated: %d tool(s)", len(state.active_tools))
+            await session.send_tool_list_changed()
+
+            lines = [f"Found {len(results)} matching tool(s). They are now available to call:\n"]
+            for tool, score in results:
+                lines.append(f"- {tool.name} (score: {score:.3f}): {tool.description}")
+            return [types.TextContent(type="text", text="\n".join(lines))]
+
+        try:
+            server_name, original_name = parse_prefixed_name(name)
+        except ValueError:
+            return [types.TextContent(type="text", text=f"Unknown tool: {name}")]
+
+        upstream_session = state.upstream.sessions.get(server_name)
+        if not upstream_session:
+            return [types.TextContent(type="text", text=f"No upstream server: {server_name}")]
+
+        logger.info("Proxying tool call %s -> %s on %s", name, original_name, server_name)
+        result = await upstream_session.call_tool(original_name, arguments)
+        return list(result.content)
 
     async def _run() -> None:
         async with stdio_server() as (read_stream, write_stream):
