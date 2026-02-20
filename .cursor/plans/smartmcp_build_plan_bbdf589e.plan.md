@@ -49,10 +49,10 @@ todos:
     status: completed
   - id: commit-16
     content: "feat: send tool_list_changed notification after search"
-    status: in_progress
+    status: completed
   - id: commit-17
     content: "feat: implement tool call proxying to upstream servers"
-    status: pending
+    status: in_progress
   - id: commit-18
     content: "feat: add graceful degradation for failed upstream servers"
     status: pending

@@ -17,7 +17,7 @@ from mcp.server.context import ServerRequestContext
 
 from smartmcp.config import SmartMCPConfig
 from smartmcp.embedding import EmbeddingIndex
-from smartmcp.upstream import UpstreamManager
+from smartmcp.upstream import UpstreamManager, parse_prefixed_name
 
 logger = logging.getLogger(__name__)
 
@@ -121,9 +121,22 @@ async def handle_call_tool(
             content=[types.TextContent(type="text", text="\n".join(lines))]
         )
 
-    return types.CallToolResult(
-        content=[types.TextContent(type="text", text=f"Unknown tool: {params.name}")]
-    )
+    try:
+        server_name, original_name = parse_prefixed_name(params.name)
+    except ValueError:
+        return types.CallToolResult(
+            content=[types.TextContent(type="text", text=f"Unknown tool: {params.name}")]
+        )
+
+    session = state.upstream.sessions.get(server_name)
+    if not session:
+        return types.CallToolResult(
+            content=[types.TextContent(type="text", text=f"No upstream server: {server_name}")]
+        )
+
+    logger.info("Proxying tool call %s -> %s on %s", params.name, original_name, server_name)
+    result = await session.call_tool(original_name, params.arguments or {})
+    return types.CallToolResult(content=result.content)
 
 
 def run_server(config: SmartMCPConfig) -> None:
