@@ -13,11 +13,37 @@ from mcp.server import Server as MCPServer
 from mcp.server.lowlevel.server import NotificationOptions
 from mcp.server.stdio import stdio_server
 
+from mcp.server.context import ServerRequestContext
+
 from smartmcp.config import SmartMCPConfig
 from smartmcp.embedding import EmbeddingIndex
 from smartmcp.upstream import UpstreamManager
 
 logger = logging.getLogger(__name__)
+
+SEARCH_TOOLS_NAME = "search_tools"
+
+SEARCH_TOOLS_SCHEMA = types.Tool(
+    name=SEARCH_TOOLS_NAME,
+    description=(
+        "Search for relevant tools across all connected MCP servers. "
+        "Describe what you want to do and this will find the best matching tools."
+    ),
+    inputSchema={
+        "type": "object",
+        "required": ["query"],
+        "properties": {
+            "query": {
+                "type": "string",
+                "description": "Natural language description of what you want to do",
+            },
+            "top_k": {
+                "type": "integer",
+                "description": "Number of tools to return (default: 3)",
+            },
+        },
+    },
+)
 
 
 class SmartMCPState:
@@ -62,14 +88,33 @@ async def smartmcp_lifespan(server: MCPServer, config: SmartMCPConfig) -> AsyncI
 
 
 async def handle_list_tools(
-    ctx: Any, params: types.PaginatedRequestParams | None
+    ctx: ServerRequestContext[SmartMCPState], params: types.PaginatedRequestParams | None
 ) -> types.ListToolsResult:
-    return types.ListToolsResult(tools=[])
+    return types.ListToolsResult(tools=[SEARCH_TOOLS_SCHEMA])
 
 
 async def handle_call_tool(
-    ctx: Any, params: types.CallToolRequestParams
+    ctx: ServerRequestContext[SmartMCPState], params: types.CallToolRequestParams
 ) -> types.CallToolResult:
+    state: SmartMCPState = ctx.lifespan_context
+
+    if params.name == SEARCH_TOOLS_NAME:
+        args = params.arguments or {}
+        query = args.get("query", "")
+        top_k = args.get("top_k", state.config.top_k)
+        if not query:
+            return types.CallToolResult(
+                content=[types.TextContent(type="text", text="Error: 'query' is required")]
+            )
+
+        results = state.index.search(query, top_k=top_k)
+        lines = [f"Found {len(results)} matching tool(s):\n"]
+        for tool, score in results:
+            lines.append(f"- {tool.name} (score: {score:.3f}): {tool.description}")
+        return types.CallToolResult(
+            content=[types.TextContent(type="text", text="\n".join(lines))]
+        )
+
     return types.CallToolResult(
         content=[types.TextContent(type="text", text=f"Unknown tool: {params.name}")]
     )

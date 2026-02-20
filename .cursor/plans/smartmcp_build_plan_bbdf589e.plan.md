@@ -40,10 +40,10 @@ todos:
     status: completed
   - id: commit-13
     content: "feat: create MCP server with lifespan initialization"
-    status: in_progress
+    status: completed
   - id: commit-14
     content: "feat: implement search_tools tool definition and handler"
-    status: pending
+    status: in_progress
   - id: commit-15
     content: "feat: implement dynamic tool list management"
     status: pending
