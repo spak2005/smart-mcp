@@ -60,6 +60,7 @@ class SmartMCPState:
         self.index = index
         self.all_tools = all_tools
         self.config = config
+        self.active_tools: list[types.Tool] = []
 
 
 @asynccontextmanager
@@ -90,7 +91,8 @@ async def smartmcp_lifespan(server: MCPServer, config: SmartMCPConfig) -> AsyncI
 async def handle_list_tools(
     ctx: ServerRequestContext[SmartMCPState], params: types.PaginatedRequestParams | None
 ) -> types.ListToolsResult:
-    return types.ListToolsResult(tools=[SEARCH_TOOLS_SCHEMA])
+    state: SmartMCPState = ctx.lifespan_context
+    return types.ListToolsResult(tools=[SEARCH_TOOLS_SCHEMA] + state.active_tools)
 
 
 async def handle_call_tool(
@@ -108,7 +110,10 @@ async def handle_call_tool(
             )
 
         results = state.index.search(query, top_k=top_k)
-        lines = [f"Found {len(results)} matching tool(s):\n"]
+        state.active_tools = [tool for tool, _ in results]
+        logger.info("Active tools updated: %d tool(s)", len(state.active_tools))
+
+        lines = [f"Found {len(results)} matching tool(s). They are now available to call:\n"]
         for tool, score in results:
             lines.append(f"- {tool.name} (score: {score:.3f}): {tool.description}")
         return types.CallToolResult(
