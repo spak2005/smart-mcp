@@ -13,10 +13,10 @@ todos:
     status: completed
   - id: commit-04
     content: "feat: add CLI argument parsing entry point"
-    status: in_progress
+    status: completed
   - id: commit-05
     content: "feat: add __main__.py for python -m support"
-    status: pending
+    status: in_progress
   - id: commit-06
     content: "feat: add upstream server connection manager"
     status: pending
