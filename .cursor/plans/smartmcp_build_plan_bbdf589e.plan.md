@@ -55,10 +55,10 @@ todos:
     status: completed
   - id: commit-18
     content: "feat: add graceful degradation for failed upstream servers"
-    status: in_progress
+    status: completed
   - id: commit-19
     content: "chore: add example smartmcp.json configuration file"
-    status: pending
+    status: completed
 isProject: false
 ---
 
