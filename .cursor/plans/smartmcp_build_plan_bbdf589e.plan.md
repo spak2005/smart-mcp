@@ -52,10 +52,10 @@ todos:
     status: completed
   - id: commit-17
     content: "feat: implement tool call proxying to upstream servers"
-    status: in_progress
+    status: completed
   - id: commit-18
     content: "feat: add graceful degradation for failed upstream servers"
-    status: pending
+    status: in_progress
   - id: commit-19
     content: "chore: add example smartmcp.json configuration file"
     status: pending

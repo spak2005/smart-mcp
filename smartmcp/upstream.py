@@ -35,22 +35,37 @@ class UpstreamManager:
         self._stack = AsyncExitStack()
         self.sessions: dict[str, ClientSession] = {}
 
-    async def connect_all(self, config: SmartMCPConfig) -> None:
-        """Spawn and connect to all configured upstream MCP servers."""
+    async def connect_all(self, config: SmartMCPConfig) -> list[str]:
+        """Spawn and connect to all configured upstream MCP servers.
+
+        Returns a list of server names that failed to connect.
+        """
+        failed: list[str] = []
         for name, server_cfg in config.servers.items():
-            params = StdioServerParameters(
-                command=server_cfg.command,
-                args=server_cfg.args,
-                env=server_cfg.env if server_cfg.env else None,
+            try:
+                params = StdioServerParameters(
+                    command=server_cfg.command,
+                    args=server_cfg.args,
+                    env=server_cfg.env if server_cfg.env else None,
+                )
+                transport = await self._stack.enter_async_context(stdio_client(params))
+                read_stream, write_stream = transport
+                session = await self._stack.enter_async_context(
+                    ClientSession(read_stream, write_stream)
+                )
+                await session.initialize()
+                self.sessions[name] = session
+                logger.info("Connected to upstream server: %s", name)
+            except Exception as exc:
+                logger.warning("Failed to connect to server '%s': %s", name, exc)
+                failed.append(name)
+
+        if not self.sessions:
+            raise RuntimeError(
+                "All upstream servers failed to connect. Cannot start smartmcp."
             )
-            transport = await self._stack.enter_async_context(stdio_client(params))
-            read_stream, write_stream = transport
-            session = await self._stack.enter_async_context(
-                ClientSession(read_stream, write_stream)
-            )
-            await session.initialize()
-            self.sessions[name] = session
-            logger.info("Connected to upstream server: %s", name)
+
+        return failed
 
     async def collect_tools(self) -> list[tuple[str, types.Tool]]:
         """Fetch tool schemas from all connected upstream servers.

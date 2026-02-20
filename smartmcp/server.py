@@ -67,7 +67,13 @@ class SmartMCPState:
 async def smartmcp_lifespan(server: MCPServer, config: SmartMCPConfig) -> AsyncIterator[SmartMCPState]:
     """Startup: connect upstream servers, collect tools, build index."""
     upstream = UpstreamManager()
-    await upstream.connect_all(config)
+    failed = await upstream.connect_all(config)
+    if failed:
+        logger.warning(
+            "Some servers failed to connect: %s. Continuing with %d server(s).",
+            ", ".join(failed),
+            len(upstream.sessions),
+        )
 
     raw_tools = await upstream.collect_tools()
     tools_only = [tool for _, tool in raw_tools]
@@ -75,7 +81,7 @@ async def smartmcp_lifespan(server: MCPServer, config: SmartMCPConfig) -> AsyncI
     index = EmbeddingIndex(config.embedding_model)
     index.build_index(tools_only)
 
-    logger.info("smartmcp ready — %d tools indexed", len(tools_only))
+    logger.info("smartmcp ready — %d tools indexed from %d server(s)", len(tools_only), len(upstream.sessions))
 
     try:
         yield SmartMCPState(
