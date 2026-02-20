@@ -13,6 +13,7 @@ dependencies = [
     "mcp>=1.0",
     "sentence-transformers>=2.0",
     "faiss-cpu>=1.7",
+    "click>=8.0",
 ]
 
 [project.scripts]
