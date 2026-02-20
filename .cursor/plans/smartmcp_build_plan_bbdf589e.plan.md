@@ -4,10 +4,10 @@ overview: "Build smartmcp as a pip-installable Python package that acts as an MC
 todos:
   - id: commit-01
     content: "chore: add pyproject.toml with project metadata and dependencies"
-    status: in_progress
+    status: completed
   - id: commit-02
     content: "feat: create smartmcp package with __init__.py"
-    status: pending
+    status: in_progress
   - id: commit-03
     content: "feat: add configuration schema and JSON loading"
     status: pending
