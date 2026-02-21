@@ -18,7 +18,7 @@ class ServerConfig:
 @dataclass
 class SmartMCPConfig:
     servers: dict[str, ServerConfig]
-    top_k: int = 3
+    top_k: int = 5
     embedding_model: str = "all-MiniLM-L6-v2"
 
 
@@ -46,6 +46,6 @@ def load_config(path: str | Path) -> SmartMCPConfig:
 
     return SmartMCPConfig(
         servers=servers,
-        top_k=raw.get("top_k", 3),
+        top_k=raw.get("top_k", 5),
         embedding_model=raw.get("embedding_model", "all-MiniLM-L6-v2"),
     )
