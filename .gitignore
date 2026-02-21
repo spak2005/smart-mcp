@@ -24,5 +24,8 @@ Thumbs.db
 # Config with real credentials
 smartmcp.json
 
+# Internal notes
+IMPROVEMENTS.md
+
 # Sentence-transformers model cache
 .cache/
