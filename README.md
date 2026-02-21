@@ -10,6 +10,8 @@
 | Tokens per request | ~66,000 | ~1,600 |
 | Scales with | Every tool you add (O(n)) | Always top-k (O(1)) |
 
+*Token counts estimated at ~4 characters per token. Actual counts vary by model tokenizer.*
+
 Most MCP setups expose every tool from every server to the AI at once. With 5+ servers, that's 50–200+ tool schemas crammed into the context window before the AI even starts thinking. smartmcp fixes this.
 
 smartmcp is a proxy MCP server that sits between your AI client and your upstream MCP servers. It indexes all available tools using semantic embeddings, then exposes a single `search_tools` tool. When the AI describes what it wants to do, smartmcp finds the most relevant tools and **dynamically surfaces their full schemas** — so the AI can see their parameters and call them directly.
@@ -21,7 +23,7 @@ AI Client (Claude Desktop / Cursor / your agent)
     ↕  stdio
 smartmcp (proxy server)
     ↕  stdio (one connection per server)
-[github] [filesystem] [slack] [git] [memory] ...
+[github] [filesystem] [google-workspace] [git] [memory] [puppeteer] ...
 ```
 
 smartmcp uses a two-phase flow: **discover**, then **call**.
@@ -154,6 +156,12 @@ Your AI now sees a single `search_tools` tool. When it needs to do something, it
 - **Works with any MCP server** — If it speaks MCP over stdio, smartmcp can proxy it.
 - **Drop-in replacement** — Replace your list of MCP servers with one smartmcp entry. No code changes needed.
 - **Graceful degradation** — If some upstream servers fail to connect, smartmcp continues with whatever is available.
+
+## Contributing
+
+smartmcp is early-stage and actively improving. Contributions are welcome — especially around search accuracy, embedding strategies, and support for new transports.
+
+If you have ideas, find bugs, or want to add features, open an issue or submit a PR on [GitHub](https://github.com/israelogbonna/smart-mcp).
 
 ## License
 
