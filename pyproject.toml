@@ -3,7 +3,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "smartmcp"
+name = "smartmcp-router"
 version = "0.1.0"
 description = "Intelligent MCP tool routing — reduce context bloat by serving only relevant tools"
 readme = "README.md"

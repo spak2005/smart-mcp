@@ -45,7 +45,7 @@ The intelligence is in the **discovery** step. The AI still does its own paramet
 ## Installation
 
 ```bash
-pip install smartmcp
+pip install smartmcp-router
 ```
 
 Requires Python 3.10+.
