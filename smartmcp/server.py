@@ -110,10 +110,19 @@ def run_server(config: SmartMCPConfig) -> None:
             if not query:
                 return [types.TextContent(type="text", text="Error: 'query' is required")]
 
-            results = state.index.search(query, top_k=top_k)
+            try:
+                results = state.index.search(query, top_k=top_k)
+            except Exception as exc:
+                logger.error("Search failed for query '%s': %s", query, exc)
+                return [types.TextContent(type="text", text=f"Search error: {exc}")]
+
             state.active_tools = [tool for tool, _ in results]
             logger.info("Active tools updated: %d tool(s)", len(state.active_tools))
-            await session.send_tool_list_changed()
+
+            try:
+                await session.send_tool_list_changed()
+            except Exception as exc:
+                logger.warning("Failed to send tool_list_changed notification: %s", exc)
 
             lines = [f"Found {len(results)} matching tool(s). They are now available to call:\n"]
             for tool, score in results:
@@ -130,8 +139,12 @@ def run_server(config: SmartMCPConfig) -> None:
             return [types.TextContent(type="text", text=f"No upstream server: {server_name}")]
 
         logger.info("Proxying tool call %s -> %s on %s", name, original_name, server_name)
-        result = await upstream_session.call_tool(original_name, arguments)
-        return list(result.content)
+        try:
+            result = await upstream_session.call_tool(original_name, arguments)
+            return list(result.content)
+        except Exception as exc:
+            logger.error("Tool call failed: %s on %s: %s", original_name, server_name, exc)
+            return [types.TextContent(type="text", text=f"Error calling {name}: {exc}")]
 
     async def _run() -> None:
         async with stdio_server() as (read_stream, write_stream):

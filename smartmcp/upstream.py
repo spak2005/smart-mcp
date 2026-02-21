@@ -75,15 +75,18 @@ class UpstreamManager:
         """
         all_tools: list[tuple[str, types.Tool]] = []
         for name, session in self.sessions.items():
-            result = await session.list_tools()
-            for tool in result.tools:
-                prefixed = types.Tool(
-                    name=prefix_tool_name(name, tool.name),
-                    description=tool.description,
-                    inputSchema=tool.inputSchema,
-                )
-                all_tools.append((name, prefixed))
-            logger.info("Collected %d tool(s) from server: %s", len(result.tools), name)
+            try:
+                result = await session.list_tools()
+                for tool in result.tools:
+                    prefixed = types.Tool(
+                        name=prefix_tool_name(name, tool.name),
+                        description=tool.description,
+                        inputSchema=tool.inputSchema,
+                    )
+                    all_tools.append((name, prefixed))
+                logger.info("Collected %d tool(s) from server: %s", len(result.tools), name)
+            except Exception as exc:
+                logger.warning("Failed to collect tools from server '%s': %s", name, exc)
         return all_tools
 
     async def close(self) -> None:
