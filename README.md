@@ -2,7 +2,15 @@
 
 **Intelligent MCP tool routing — reduce context bloat by serving only the tools your AI actually needs.**
 
-Most MCP setups expose every tool from every server to the AI at once. With 5+ servers, that's 50–100+ tool schemas crammed into the context window before the AI even starts thinking. smartmcp fixes this.
+> In my own setup — 8 MCP servers, 224 tools — every AI request was loading **~66,000 tokens** of tool schemas before the model even started thinking. With smartmcp, that dropped to **~1,600 tokens**. A **97% reduction**, every single request.
+
+| | Without smartmcp | With smartmcp |
+|---|---|---|
+| Tools in context | All 224 | 1 (`search_tools`) + 5 matched |
+| Tokens per request | ~66,000 | ~1,600 |
+| Scales with | Every tool you add (O(n)) | Always top-k (O(1)) |
+
+Most MCP setups expose every tool from every server to the AI at once. With 5+ servers, that's 50–200+ tool schemas crammed into the context window before the AI even starts thinking. smartmcp fixes this.
 
 smartmcp is a proxy MCP server that sits between your AI client and your upstream MCP servers. It indexes all available tools using semantic embeddings, then exposes a single `search_tools` tool. When the AI describes what it wants to do, smartmcp finds the most relevant tools and **dynamically surfaces their full schemas** — so the AI can see their parameters and call them directly.
 
@@ -68,7 +76,7 @@ Create a `smartmcp.json` with your upstream MCP servers (same format as Claude D
       }
     }
   },
-  "top_k": 3,
+  "top_k": 5,
   "embedding_model": "all-MiniLM-L6-v2"
 }
 ```
@@ -135,7 +143,7 @@ Your AI now sees a single `search_tools` tool. When it needs to do something, it
 | `mcpServers.<name>.command` | string | _(required)_ | Command to spawn the server |
 | `mcpServers.<name>.args` | string[] | `[]` | Arguments for the command |
 | `mcpServers.<name>.env` | object | `{}` | Environment variables for the server |
-| `top_k` | integer | `3` | Default number of tools returned per search |
+| `top_k` | integer | `5` | Default number of tools returned per search |
 | `embedding_model` | string | `"all-MiniLM-L6-v2"` | Sentence-transformers model for embeddings |
 
 ## Why smartmcp?
