@@ -23,8 +23,12 @@ SEARCH_TOOLS_NAME = "search_tools"
 SEARCH_TOOLS_SCHEMA = types.Tool(
     name=SEARCH_TOOLS_NAME,
     description=(
-        "Search for relevant tools across all connected MCP servers. "
-        "Describe what you want to do and this will find the best matching tools."
+        "Your gateway to all available tools across connected MCP servers. "
+        "No other tools are visible until you search — call this first to find the right tool for your task. "
+        "Matched tools will be surfaced with their full parameter schemas, ready for you to call directly. "
+        "For best results, be specific about the action and target: "
+        "'read the contents of a file' works better than 'files', "
+        "'send an email with an attachment' works better than 'communicate'."
     ),
     inputSchema={
         "type": "object",
@@ -32,11 +36,16 @@ SEARCH_TOOLS_SCHEMA = types.Tool(
         "properties": {
             "query": {
                 "type": "string",
-                "description": "Natural language description of what you want to do",
+                "description": (
+                    "Describe the specific task you want to perform. "
+                    "Include the action verb and what you are acting on. "
+                    "For example: 'list files in a directory' not 'files'. "
+                    "'create a calendar event' not 'calendar'."
+                ),
             },
             "top_k": {
                 "type": "integer",
-                "description": "Number of tools to return (default: 3)",
+                "description": "Number of tools to return (default: 5)",
             },
         },
     },
