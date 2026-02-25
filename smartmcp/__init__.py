@@ -1,3 +1,3 @@
 """smartmcp — Intelligent MCP tool routing to reduce context bloat."""
 
-__version__ = "0.1.1"
+__version__ = "0.1.2"

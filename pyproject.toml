@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "smartmcp-router"
-version = "0.1.1"
+version = "0.1.2"
 description = "Intelligent MCP tool routing — reduce context bloat by serving only relevant tools"
 readme = "README.md"
 license = "MIT"
