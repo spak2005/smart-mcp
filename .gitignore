@@ -30,7 +30,7 @@ measure_tokens.py
 
 # Benchmark results (generated)
 benchmarks/results/
-benchmarks/*snapshot*.json
+benchmarks/*snapshot_temp*.json
 
 # Sentence-transformers model cache
 .cache/
