@@ -1,0 +1,242 @@
+[
+  {
+    "query": "read the contents of a file from disk",
+    "expected": "filesystem__read_text_file"
+  },
+  {
+    "query": "write new content to a file",
+    "expected": "filesystem__write_file"
+  },
+  {
+    "query": "list all files and folders in a directory",
+    "expected": "filesystem__list_directory"
+  },
+  {
+    "query": "search for files matching a pattern recursively",
+    "expected": "filesystem__search_files"
+  },
+  {
+    "query": "get metadata and size information about a file",
+    "expected": "filesystem__get_file_info"
+  },
+  {
+    "query": "move or rename a file to a new location",
+    "expected": "filesystem__move_file"
+  },
+  {
+    "query": "create a new directory on the filesystem",
+    "expected": "filesystem__create_directory"
+  },
+  {
+    "query": "make line-based edits to an existing text file",
+    "expected": "filesystem__edit_file"
+  },
+  {
+    "query": "get a recursive tree view of a directory structure",
+    "expected": "filesystem__directory_tree"
+  },
+  {
+    "query": "create a new issue in a GitHub repository",
+    "expected": "github__create_issue"
+  },
+  {
+    "query": "search for repositories on GitHub",
+    "expected": "github__search_repositories"
+  },
+  {
+    "query": "open a pull request for my changes",
+    "expected": "github__create_pull_request"
+  },
+  {
+    "query": "get the list of files changed in a pull request",
+    "expected": "github__get_pull_request_files"
+  },
+  {
+    "query": "list all open issues in a repository with filters",
+    "expected": "github__list_issues"
+  },
+  {
+    "query": "add a comment to an existing GitHub issue",
+    "expected": "github__add_issue_comment"
+  },
+  {
+    "query": "merge a pull request into the base branch",
+    "expected": "github__merge_pull_request"
+  },
+  {
+    "query": "create a new branch in a GitHub repository",
+    "expected": "github__create_branch"
+  },
+  {
+    "query": "search for code across GitHub repositories",
+    "expected": "github__search_code"
+  },
+  {
+    "query": "get the commit history of a branch",
+    "expected": "github__list_commits"
+  },
+  {
+    "query": "fork a repository to my account",
+    "expected": "github__fork_repository"
+  },
+  {
+    "query": "create entities in the knowledge graph",
+    "expected": "memory__create_entities"
+  },
+  {
+    "query": "search for nodes in the knowledge graph",
+    "expected": "memory__search_nodes"
+  },
+  {
+    "query": "read the entire knowledge graph",
+    "expected": "memory__read_graph"
+  },
+  {
+    "query": "add new observations to existing entities",
+    "expected": "memory__add_observations"
+  },
+  {
+    "query": "get the current time in a specific timezone",
+    "expected": "time__get_current_time"
+  },
+  {
+    "query": "convert a time from one timezone to another",
+    "expected": "time__convert_time"
+  },
+  {
+    "query": "navigate the browser to a URL",
+    "expected": "puppeteer__puppeteer_navigate"
+  },
+  {
+    "query": "take a screenshot of the current web page",
+    "expected": "puppeteer__puppeteer_screenshot"
+  },
+  {
+    "query": "click on an element on the web page",
+    "expected": "puppeteer__puppeteer_click"
+  },
+  {
+    "query": "fill out a form input field in the browser",
+    "expected": "puppeteer__puppeteer_fill"
+  },
+  {
+    "query": "execute JavaScript in the browser console",
+    "expected": "puppeteer__puppeteer_evaluate"
+  },
+  {
+    "query": "check the git status of the working directory",
+    "expected": "git__git_status"
+  },
+  {
+    "query": "commit the staged changes to the repository",
+    "expected": "git__git_commit"
+  },
+  {
+    "query": "show the diff of unstaged changes",
+    "expected": "git__git_diff_unstaged"
+  },
+  {
+    "query": "view the commit log history",
+    "expected": "git__git_log"
+  },
+  {
+    "query": "stage files for the next commit",
+    "expected": "git__git_add"
+  },
+  {
+    "query": "switch to a different git branch",
+    "expected": "git__git_checkout"
+  },
+  {
+    "query": "send an email using Gmail",
+    "expected": "google-workspace__send_gmail_message"
+  },
+  {
+    "query": "search for emails in my inbox",
+    "expected": "google-workspace__search_gmail_messages"
+  },
+  {
+    "query": "read the full content of a specific email",
+    "expected": "google-workspace__get_gmail_message_content"
+  },
+  {
+    "query": "create a new Google Doc with some initial text",
+    "expected": "google-workspace__create_doc"
+  },
+  {
+    "query": "get the content of a Google Doc",
+    "expected": "google-workspace__get_doc_content"
+  },
+  {
+    "query": "create a new event on my Google Calendar",
+    "expected": "google-workspace__manage_event"
+  },
+  {
+    "query": "list my upcoming calendar events",
+    "expected": "google-workspace__get_events"
+  },
+  {
+    "query": "search for files in Google Drive",
+    "expected": "google-workspace__search_drive_files"
+  },
+  {
+    "query": "create a new Google Sheets spreadsheet",
+    "expected": "google-workspace__create_spreadsheet"
+  },
+  {
+    "query": "read values from a range in a Google Sheet",
+    "expected": "google-workspace__read_sheet_values"
+  },
+  {
+    "query": "send a message in Google Chat",
+    "expected": "google-workspace__send_message"
+  },
+  {
+    "query": "search for a contact by name or email",
+    "expected": "google-workspace__search_contacts"
+  },
+  {
+    "query": "create a new Google Slides presentation",
+    "expected": "google-workspace__create_presentation"
+  },
+  {
+    "query": "create a Google Form",
+    "expected": "google-workspace__create_form"
+  },
+  {
+    "query": "draft an email reply without sending it",
+    "expected": "google-workspace__draft_gmail_message"
+  },
+  {
+    "query": "share a Google Drive file with someone",
+    "expected": "google-workspace__manage_drive_access"
+  },
+  {
+    "query": "download a file from Google Drive to disk",
+    "expected": "google-workspace__get_drive_file_download_url"
+  },
+  {
+    "query": "list all my Google Drive files and folders",
+    "expected": "google-workspace__list_drive_items"
+  },
+  {
+    "query": "create a new folder in Google Drive",
+    "expected": "google-workspace__create_drive_folder"
+  },
+  {
+    "query": "think through a complex problem step by step",
+    "expected": "sequential-thinking__sequentialthinking"
+  },
+  {
+    "query": "get the list of responses submitted to a Google Form",
+    "expected": "google-workspace__list_form_responses"
+  },
+  {
+    "query": "modify text in an existing Google Doc",
+    "expected": "google-workspace__modify_doc_text"
+  },
+  {
+    "query": "write values to cells in a Google Sheet",
+    "expected": "google-workspace__modify_sheet_values"
+  }
+]
