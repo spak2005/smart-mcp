@@ -221,9 +221,11 @@ def save_results(results: BenchmarkResults, path: str) -> None:
               help="Sentence-transformers model to use.")
 @click.option("--output", "output_path", type=click.Path(),
               help="Save results to JSON file.")
+@click.option("--allow-invalid-expected", is_flag=True,
+              help="Skip test cases whose expected tool is missing from loaded tools.")
 def main(snapshot_path: str | None, config_path: str | None,
          test_cases_path: str | None, top_k: int, model: str,
-         output_path: str | None) -> None:
+         output_path: str | None, allow_invalid_expected: bool) -> None:
     """Run smartmcp search accuracy benchmarks."""
     if not snapshot_path and not config_path:
         raise click.UsageError("Provide either --snapshot or --config to load tools.")
@@ -248,7 +250,17 @@ def main(snapshot_path: str | None, config_path: str | None,
         print(f"Found {len(invalid_cases)} invalid test case(s) with unknown expected tools:")
         for case in invalid_cases:
             print(f"  - expected={case['expected']} | query=\"{case['query']}\"")
-        raise click.UsageError("Invalid expected tool names detected in test cases.")
+        if not allow_invalid_expected:
+            raise click.UsageError(
+                "Invalid expected tool names detected. "
+                "Fix test cases or rerun with --allow-invalid-expected."
+            )
+        invalid_expected = {case["expected"] for case in invalid_cases}
+        test_cases = [case for case in test_cases if case["expected"] not in invalid_expected]
+        print(f"Proceeding after skipping invalid cases. Remaining test cases: {len(test_cases)}")
+
+    if not test_cases:
+        raise click.UsageError("No valid test cases to run.")
 
     # Run benchmark
     results = run_benchmark(tools, test_cases, top_k=top_k, model=model)
