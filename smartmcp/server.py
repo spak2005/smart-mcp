@@ -26,9 +26,11 @@ SEARCH_TOOLS_SCHEMA = types.Tool(
         "Your gateway to all available tools across connected MCP servers. "
         "No other tools are visible until you search — call this first to find the right tool for your task. "
         "Matched tools will be surfaced with their full parameter schemas, ready for you to call directly. "
-        "For best results, be specific about the action and target: "
-        "'read the contents of a file' works better than 'files', "
-        "'send an email with an attachment' works better than 'communicate'."
+        "Always describe the task you want to perform using an action verb and object (for example: "
+        "'read the contents of a file from disk' or 'create a new issue in a GitHub repository'). "
+        "When you are certain about the product or service you want to use (such as GitHub, Google Drive, Gmail, or Google Calendar), "
+        "include it in your description, but do not guess or invent internal tool names like 'github__create_issue' — "
+        "simply state the task and, if known, the system where it should happen."
     ),
     inputSchema={
         "type": "object",
@@ -37,10 +39,12 @@ SEARCH_TOOLS_SCHEMA = types.Tool(
             "query": {
                 "type": "string",
                 "description": (
-                    "Describe the specific task you want to perform. "
-                    "Include the action verb and what you are acting on. "
-                    "For example: 'list files in a directory' not 'files'. "
-                    "'create a calendar event' not 'calendar'."
+                    "Describe the specific task you want to perform using an action verb and object. "
+                    "For example: 'list all files in a directory' not 'files'. "
+                    "'create a new issue in a GitHub repository' not 'GitHub'. "
+                    "When you are certain about the product or service you want to use (for example, GitHub, Google Drive, Gmail, or Google Calendar), "
+                    "mention it in the description, but never guess or invent internal tool/function names — "
+                    "smartmcp will select the right tool based on your description."
                 ),
             },
             "top_k": {
