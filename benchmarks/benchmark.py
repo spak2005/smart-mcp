@@ -89,12 +89,14 @@ async def load_tools_from_live(config_path: str) -> list[types.Tool]:
     """Connect to live servers and collect tool schemas."""
     config = load_config(config_path)
     upstream = UpstreamManager()
-    failed = await upstream.connect_all(config)
-    if failed:
-        logger.warning("Failed: %s", ", ".join(failed))
-    raw_tools = await upstream.collect_tools()
-    await upstream.close()
-    return [tool for _, tool in raw_tools]
+    try:
+        failed = await upstream.connect_all(config)
+        if failed:
+            logger.warning("Failed: %s", ", ".join(failed))
+        raw_tools = await upstream.collect_tools()
+        return [tool for _, tool in raw_tools]
+    finally:
+        await upstream.close()
 
 
 def load_test_cases(path: Path | None = None) -> list[dict]:
