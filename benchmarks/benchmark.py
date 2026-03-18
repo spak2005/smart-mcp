@@ -60,6 +60,16 @@ class BenchmarkResults:
     embedding_model: str = ""
     index_build_time_ms: float = 0.0
     query_results: list[QueryResult] = field(default_factory=list)
+    namespace_results: dict[str, "NamespaceResult"] = field(default_factory=dict)
+
+
+@dataclass
+class NamespaceResult:
+    total_queries: int = 0
+    recall_at_1: float = 0.0
+    recall_at_k: float = 0.0
+    mrr: float = 0.0
+    avg_latency_ms: float = 0.0
 
 
 def load_tools_from_snapshot(path: str) -> list[types.Tool]:
@@ -101,6 +111,12 @@ def find_invalid_expected_cases(test_cases: list[dict], tools: list[types.Tool])
     return [case for case in test_cases if case.get("expected") not in tool_names]
 
 
+def _namespace_from_tool_name(tool_name: str) -> str:
+    if "__" in tool_name:
+        return tool_name.split("__", 1)[0]
+    return "(unprefixed)"
+
+
 def run_benchmark(tools: list[types.Tool], test_cases: list[dict],
                   top_k: int = 5, model: str = "all-MiniLM-L6-v2") -> BenchmarkResults:
     """Run the full benchmark suite."""
@@ -121,6 +137,7 @@ def run_benchmark(tools: list[types.Tool], test_cases: list[dict],
     recall_k_hits = 0
     reciprocal_ranks = []
     latencies = []
+    namespace_stats: dict[str, dict[str, float]] = {}
 
     for case in test_cases:
         query = case["query"]
@@ -147,6 +164,21 @@ def run_benchmark(tools: list[types.Tool], test_cases: list[dict],
         reciprocal_ranks.append(1.0 / rank if rank else 0.0)
         latencies.append(latency)
 
+        namespace = _namespace_from_tool_name(expected)
+        if namespace not in namespace_stats:
+            namespace_stats[namespace] = {
+                "total": 0.0,
+                "recall_1_hits": 0.0,
+                "recall_k_hits": 0.0,
+                "rr_sum": 0.0,
+                "latency_sum": 0.0,
+            }
+        namespace_stats[namespace]["total"] += 1
+        namespace_stats[namespace]["recall_1_hits"] += 1 if is_recall_1 else 0
+        namespace_stats[namespace]["recall_k_hits"] += 1 if is_recall_k else 0
+        namespace_stats[namespace]["rr_sum"] += 1.0 / rank if rank else 0.0
+        namespace_stats[namespace]["latency_sum"] += latency
+
         results.query_results.append(QueryResult(
             query=query,
             expected=expected,
@@ -164,6 +196,17 @@ def run_benchmark(tools: list[types.Tool], test_cases: list[dict],
     results.recall_at_k = round(recall_k_hits / n, 4) if n else 0
     results.mrr = round(sum(reciprocal_ranks) / n, 4) if n else 0
     results.avg_latency_ms = round(sum(latencies) / n, 2) if n else 0
+    for namespace, stats in namespace_stats.items():
+        total = int(stats["total"])
+        if total == 0:
+            continue
+        results.namespace_results[namespace] = NamespaceResult(
+            total_queries=total,
+            recall_at_1=round(stats["recall_1_hits"] / total, 4),
+            recall_at_k=round(stats["recall_k_hits"] / total, 4),
+            mrr=round(stats["rr_sum"] / total, 4),
+            avg_latency_ms=round(stats["latency_sum"] / total, 2),
+        )
 
     return results
 
