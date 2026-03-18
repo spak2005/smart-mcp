@@ -89,7 +89,7 @@ Create a `smartmcp.json` with your upstream MCP servers (same format as Claude D
 
 ### 2. Add smartmcp to your AI client
 
-Replace your list of MCP servers with a single smartmcp entry.
+Add `smartmcp` as your single MCP server entry — it now manages all your upstream servers defined in `smartmcp.json`.
 
 #### Claude Desktop
 
