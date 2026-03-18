@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 <p align="center">
-  <img src="assets/banner.png" alt="Without smartmcp vs With smartmcp" width="700" />
+  <img src="https://raw.githubusercontent.com/spak2005/smart-mcp/main/assets/banner.png" alt="Without smartmcp vs With smartmcp" width="700" />
 </p>
 
 **PyPI package:** [`smartmcp-router`](https://pypi.org/project/smartmcp-router/) (CLI: `smartmcp`)
