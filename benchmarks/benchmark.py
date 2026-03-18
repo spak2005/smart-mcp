@@ -95,6 +95,12 @@ def load_test_cases(path: Path | None = None) -> list[dict]:
     return json.loads(p.read_text())
 
 
+def find_invalid_expected_cases(test_cases: list[dict], tools: list[types.Tool]) -> list[dict]:
+    """Return test cases whose expected tool name is not in the loaded catalog."""
+    tool_names = {tool.name for tool in tools}
+    return [case for case in test_cases if case.get("expected") not in tool_names]
+
+
 def run_benchmark(tools: list[types.Tool], test_cases: list[dict],
                   top_k: int = 5, model: str = "all-MiniLM-L6-v2") -> BenchmarkResults:
     """Run the full benchmark suite."""
@@ -236,6 +242,13 @@ def main(snapshot_path: str | None, config_path: str | None,
     cases_path = Path(test_cases_path) if test_cases_path else None
     test_cases = load_test_cases(cases_path)
     print(f"Loaded {len(test_cases)} test cases")
+
+    invalid_cases = find_invalid_expected_cases(test_cases, tools)
+    if invalid_cases:
+        print(f"Found {len(invalid_cases)} invalid test case(s) with unknown expected tools:")
+        for case in invalid_cases:
+            print(f"  - expected={case['expected']} | query=\"{case['query']}\"")
+        raise click.UsageError("Invalid expected tool names detected in test cases.")
 
     # Run benchmark
     results = run_benchmark(tools, test_cases, top_k=top_k, model=model)
