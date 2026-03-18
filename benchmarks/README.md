@@ -24,6 +24,22 @@ Or from live servers:
 python benchmarks/benchmark.py --config smartmcp.json
 ```
 
+By default, benchmark runs are strict: every test case `expected` tool name must
+exist in the loaded tool catalog. If any expected names are missing, the run
+fails fast with a clear list of invalid cases.
+
+To continue by skipping invalid expected cases:
+
+```bash
+python benchmarks/benchmark.py --snapshot benchmarks/tools_snapshot.json --allow-invalid-expected
+```
+
+To print per-server namespace metrics (`filesystem`, `github`, etc):
+
+```bash
+python benchmarks/benchmark.py --snapshot benchmarks/tools_snapshot.json --namespace-breakdown
+```
+
 ### 3. Save and compare results
 
 ```bash
@@ -43,7 +59,7 @@ python benchmarks/compare.py benchmarks/results/baseline.json benchmarks/results
 |--------|-----------------|
 | **Recall@1** | Was the correct tool the #1 result? |
 | **Recall@K** | Was the correct tool anywhere in the top K? |
-| **MRR** | Mean Reciprocal Rank — rewards higher placement |
+| **MRR** | Mean Reciprocal Rank over returned top-K results (MRR@K) |
 | **Latency** | Time per search query (ms) |
 
 ## Test Cases
@@ -66,4 +82,6 @@ Edit `test_cases.json` to add or modify queries. Each entry:
 --top-k N          Results per query (default: 5)
 --model NAME       Sentence-transformers model
 --output PATH      Save results as JSON
+--allow-invalid-expected  Skip test cases with unknown expected tool names
+--namespace-breakdown     Print per-namespace metric breakdown
 ```
