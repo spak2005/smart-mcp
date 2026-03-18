@@ -28,5 +28,8 @@ smartmcp.json
 IMPROVEMENTS.md
 measure_tokens.py
 
+# Benchmark results (generated)
+benchmarks/results/
+
 # Sentence-transformers model cache
 .cache/
