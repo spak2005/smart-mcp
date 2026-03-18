@@ -1,5 +1,9 @@
 # smartmcp
 
+[![PyPI version](https://img.shields.io/pypi/v/smartmcp-router)](https://pypi.org/project/smartmcp-router/)
+[![Python 3.10+](https://img.shields.io/pypi/pyversions/smartmcp-router)](https://pypi.org/project/smartmcp-router/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 **Intelligent MCP tool routing — reduce context bloat by serving only the tools your AI actually needs.**
 
 > In my own setup — 8 MCP servers, 224 tools — every AI request was loading **~66,000 tokens** of tool schemas before the model even started thinking. With smartmcp, that dropped to **~1,600 tokens**. A **97% reduction**, every single request.
