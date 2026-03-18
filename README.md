@@ -161,7 +161,7 @@ Your AI now sees a single `search_tools` tool. When it needs to do something, it
 
 smartmcp is early-stage and actively improving. Contributions are welcome — especially around search accuracy, embedding strategies, and support for new transports.
 
-If you have ideas, find bugs, or want to add features, open an issue or submit a PR on [GitHub](https://github.com/israelogbonna/smart-mcp).
+If you have ideas, find bugs, or want to add features, open an issue or submit a PR on [GitHub](https://github.com/spak2005/smart-mcp).
 
 ## License
 
