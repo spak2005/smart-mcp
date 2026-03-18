@@ -211,7 +211,7 @@ def run_benchmark(tools: list[types.Tool], test_cases: list[dict],
     return results
 
 
-def print_results(results: BenchmarkResults) -> None:
+def print_results(results: BenchmarkResults, show_namespace_breakdown: bool = False) -> None:
     """Print formatted benchmark results to stdout."""
     print(f"\n{'='*70}")
     print(f"  smartmcp Benchmark Results")
@@ -240,6 +240,21 @@ def print_results(results: BenchmarkResults) -> None:
     print(f"  Avg latency:  {results.avg_latency_ms:.1f}ms/query")
     print(f"{'='*70}\n")
 
+    if show_namespace_breakdown and results.namespace_results:
+        print(f"{'='*70}")
+        print("  Namespace Breakdown")
+        print(f"{'='*70}")
+        print(f"  {'Namespace':<22} {'Queries':>7} {'R@1':>8} {'R@K':>8} {'MRR':>8} {'Latency':>10}")
+        print(f"  {'-'*67}")
+        for namespace in sorted(results.namespace_results):
+            row = results.namespace_results[namespace]
+            print(
+                f"  {namespace:<22} {row.total_queries:>7} "
+                f"{row.recall_at_1:>7.1%} {row.recall_at_k:>7.1%} "
+                f"{row.mrr:>8.4f} {row.avg_latency_ms:>9.1f}ms"
+            )
+        print(f"{'='*70}\n")
+
 
 def save_results(results: BenchmarkResults, path: str) -> None:
     """Save results to JSON for cross-run comparison."""
@@ -266,9 +281,12 @@ def save_results(results: BenchmarkResults, path: str) -> None:
               help="Save results to JSON file.")
 @click.option("--allow-invalid-expected", is_flag=True,
               help="Skip test cases whose expected tool is missing from loaded tools.")
+@click.option("--namespace-breakdown", is_flag=True,
+              help="Print per-server namespace metrics.")
 def main(snapshot_path: str | None, config_path: str | None,
          test_cases_path: str | None, top_k: int, model: str,
-         output_path: str | None, allow_invalid_expected: bool) -> None:
+         output_path: str | None, allow_invalid_expected: bool,
+         namespace_breakdown: bool) -> None:
     """Run smartmcp search accuracy benchmarks."""
     if not snapshot_path and not config_path:
         raise click.UsageError("Provide either --snapshot or --config to load tools.")
@@ -307,7 +325,7 @@ def main(snapshot_path: str | None, config_path: str | None,
 
     # Run benchmark
     results = run_benchmark(tools, test_cases, top_k=top_k, model=model)
-    print_results(results)
+    print_results(results, show_namespace_breakdown=namespace_breakdown)
 
     if output_path:
         save_results(results, output_path)
