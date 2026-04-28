@@ -9,7 +9,7 @@ from typing import Any
 
 import anyio
 from mcp import types
-from mcp.server.lowlevel.server import Server as MCPServer, NotificationOptions
+from mcp.server.lowlevel.server import Server as MCPServer
 from mcp.server.stdio import stdio_server
 
 from smartmcp.config import SmartMCPConfig
@@ -102,7 +102,17 @@ class SmartMCPState:
         self.index = index
         self.all_tools = all_tools
         self.config = config
-        self.active_tools: list[types.Tool] = []
+
+
+def list_static_tools(state: SmartMCPState) -> list[types.Tool]:
+    """Return the fixed tool surface SmartMCP exposes to clients.
+
+    The list is identical for the lifetime of the session, so clients only
+    need to call ``tools/list`` once and never need to handle
+    ``notifications/tools/list_changed``.
+    """
+    del state
+    return [SEARCH_TOOLS_SCHEMA, CALL_DISCOVERED_TOOL_SCHEMA]
 
 
 def run_server(config: SmartMCPConfig) -> None:
@@ -142,12 +152,11 @@ def run_server(config: SmartMCPConfig) -> None:
     @app.list_tools()
     async def handle_list_tools() -> list[types.Tool]:
         state: SmartMCPState = app.request_context.lifespan_context
-        return [SEARCH_TOOLS_SCHEMA] + state.active_tools
+        return list_static_tools(state)
 
     @app.call_tool()
     async def handle_call_tool(name: str, arguments: dict[str, Any]) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
         state: SmartMCPState = app.request_context.lifespan_context
-        session = app.request_context.session
 
         if name == SEARCH_TOOLS_NAME:
             query = arguments.get("query", "")
@@ -161,15 +170,7 @@ def run_server(config: SmartMCPConfig) -> None:
                 logger.error("Search failed for query '%s': %s", query, exc)
                 return [types.TextContent(type="text", text=f"Search error: {exc}")]
 
-            state.active_tools = [tool for tool, _ in results]
-            logger.info("Active tools updated: %d tool(s)", len(state.active_tools))
-
-            try:
-                await session.send_tool_list_changed()
-            except Exception as exc:
-                logger.warning("Failed to send tool_list_changed notification: %s", exc)
-
-            lines = [f"Found {len(results)} matching tool(s). They are now available to call:\n"]
+            lines = [f"Found {len(results)} matching tool(s):\n"]
             for tool, score in results:
                 lines.append(f"- {tool.name} (score: {score:.3f}): {tool.description}")
             return [types.TextContent(type="text", text="\n".join(lines))]
@@ -193,9 +194,7 @@ def run_server(config: SmartMCPConfig) -> None:
 
     async def _run() -> None:
         async with stdio_server() as (read_stream, write_stream):
-            init_options = app.create_initialization_options(
-                notification_options=NotificationOptions(tools_changed=True),
-            )
+            init_options = app.create_initialization_options()
             await app.run(read_stream, write_stream, init_options)
 
     anyio.run(_run)
