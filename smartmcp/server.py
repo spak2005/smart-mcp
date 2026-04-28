@@ -139,6 +139,69 @@ def _build_search_match(tool: types.Tool, score: float) -> dict[str, Any]:
     }
 
 
+async def handle_call_discovered_tool(
+    state: SmartMCPState,
+    arguments: dict[str, Any],
+) -> list[types.TextContent | types.ImageContent | types.EmbeddedResource]:
+    """Proxy a call to the upstream tool identified by ``target``.
+
+    ``target`` must be a value returned in a ``search_tools`` match. The
+    nested ``arguments`` object is forwarded to the upstream tool without any
+    modification.
+    """
+    target = arguments.get("target")
+    if not isinstance(target, str) or not target:
+        return [
+            types.TextContent(
+                type="text",
+                text="Error: 'target' is required and must be a non-empty string",
+            )
+        ]
+
+    upstream_arguments = arguments.get("arguments")
+    if not isinstance(upstream_arguments, dict):
+        return [
+            types.TextContent(
+                type="text",
+                text="Error: 'arguments' is required and must be an object",
+            )
+        ]
+
+    try:
+        server_name, original_name = parse_prefixed_name(target)
+    except ValueError:
+        return [types.TextContent(type="text", text=f"Unknown target: {target}")]
+
+    upstream_session = state.upstream.sessions.get(server_name)
+    if not upstream_session:
+        return [
+            types.TextContent(
+                type="text",
+                text=f"No upstream server: {server_name}",
+            )
+        ]
+
+    logger.info(
+        "Proxying call_discovered_tool target=%s -> %s on %s",
+        target,
+        original_name,
+        server_name,
+    )
+    try:
+        result = await upstream_session.call_tool(original_name, upstream_arguments)
+        return list(result.content)
+    except Exception as exc:
+        logger.error(
+            "Tool call failed: %s on %s: %s", original_name, server_name, exc
+        )
+        return [
+            types.TextContent(
+                type="text",
+                text=f"Error calling {target}: {exc}",
+            )
+        ]
+
+
 async def handle_search_tools(
     state: SmartMCPState,
     arguments: dict[str, Any],
@@ -215,23 +278,9 @@ def run_server(config: SmartMCPConfig) -> None:
 
         if name == SEARCH_TOOLS_NAME:
             return await handle_search_tools(state, arguments)
-
-        try:
-            server_name, original_name = parse_prefixed_name(name)
-        except ValueError:
-            return [types.TextContent(type="text", text=f"Unknown tool: {name}")]
-
-        upstream_session = state.upstream.sessions.get(server_name)
-        if not upstream_session:
-            return [types.TextContent(type="text", text=f"No upstream server: {server_name}")]
-
-        logger.info("Proxying tool call %s -> %s on %s", name, original_name, server_name)
-        try:
-            result = await upstream_session.call_tool(original_name, arguments)
-            return list(result.content)
-        except Exception as exc:
-            logger.error("Tool call failed: %s on %s: %s", original_name, server_name, exc)
-            return [types.TextContent(type="text", text=f"Error calling {name}: {exc}")]
+        if name == CALL_DISCOVERED_TOOL_NAME:
+            return await handle_call_discovered_tool(state, arguments)
+        return [types.TextContent(type="text", text=f"Unknown tool: {name}")]
 
     async def _run() -> None:
         async with stdio_server() as (read_stream, write_stream):
