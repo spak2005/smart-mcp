@@ -16,15 +16,15 @@
 
 | | Without smartmcp | With smartmcp |
 |---|---|---|
-| Tools in context | All 224 | 1 (`search_tools`) + 5 matched |
+| Tools in context | All 224 | 2 (`search_tools` + `call_discovered_tool`) |
 | Tokens per request | ~66,000 | ~1,600 |
-| Scales with | Every tool you add (O(n)) | Always top-k (O(1)) |
+| Scales with | Every tool you add (O(n)) | Always 2 fixed tools (O(1)) |
 
 *Token counts estimated at ~4 characters per token. Actual counts vary by model tokenizer.*
 
 Most MCP setups expose every tool from every server to the AI at once. With 5+ servers, that's 50–200+ tool schemas crammed into the context window before the AI even starts thinking. smartmcp fixes this.
 
-smartmcp is a proxy MCP server that sits between your AI client and your upstream MCP servers. It indexes all available tools using semantic embeddings, then exposes a single `search_tools` tool. When the AI describes what it wants to do, smartmcp finds the most relevant tools and **dynamically surfaces their full schemas** so the AI can see their parameters and call them directly.
+smartmcp is a proxy MCP server that sits between your AI client and your upstream MCP servers. It indexes all available tools using semantic embeddings and exposes a fixed two-tool surface: `search_tools` to discover the right upstream tool and `call_discovered_tool` to invoke it. The tool list never changes mid-session, so smartmcp works even with clients that ignore `notifications/tools/list_changed`.
 
 ## How it works
 
@@ -41,16 +41,16 @@ smartmcp uses a two-phase flow: **discover**, then **call**.
 ### Phase 1: Discovery
 
 1. On startup, smartmcp connects to all your configured MCP servers, collects every tool schema, and builds a [FAISS](https://github.com/facebookresearch/faiss) vector index using [sentence-transformer](https://www.sbert.net/) embeddings.
-2. The AI sees only one tool: `search_tools`. It calls it with a natural language query, for example `search_tools({ "query": "create a GitHub issue" })`.
+2. The AI always sees exactly two tools: `search_tools` and `call_discovered_tool`. It calls `search_tools` with a natural language query, for example `search_tools({ "query": "create a GitHub issue" })`.
 3. smartmcp runs semantic search across all indexed tools and finds the top-k matches.
-4. The **full schemas** of those matching tools (name, description, parameters, types) are dynamically added to the tool list. smartmcp sends a `tool_list_changed` notification so the AI client re-fetches and sees them.
+4. `search_tools` returns structured JSON. Each match includes the exact `target` identifier, the upstream `server` and `name`, the `description`, the relevance `score`, and the full upstream `input_schema`.
 
 ### Phase 2: Calling
 
-5. The AI now sees the surfaced tool schemas with their complete `inputSchema`. It picks the right tool, constructs the correct arguments itself, and calls it.
-6. smartmcp parses the namespaced tool name (e.g. `github__create_issue`), routes the call to the correct upstream server, and returns the result.
+5. The AI reads the matching tool's `input_schema` from the search response and constructs valid `arguments`.
+6. The AI calls `call_discovered_tool({ "target": "<exact target from search>", "arguments": { ... } })`. smartmcp resolves the target (for example `github__create_issue`), routes the call to the correct upstream server, and returns the result. Arguments are forwarded to the upstream tool unchanged.
 
-The intelligence is in the **discovery** step. The AI still does its own parameter construction based on the exposed schemas. smartmcp just narrows down *which* tools it sees.
+The intelligence is in the **discovery** step. The AI still does its own parameter construction based on the schema returned by `search_tools`. smartmcp just narrows down *which* tools it sees, and the static two-tool surface means the flow works even with clients that snapshot `tools/list` once and never refresh.
 
 ## Installation
 
@@ -137,15 +137,15 @@ smartmcp --config /path/to/smartmcp.json
 
 ### 3. Use it
 
-Your AI now sees a single `search_tools` tool. When it needs to do something, it searches:
+Your AI now sees two tools: `search_tools` and `call_discovered_tool`. When it needs to do something, it searches and then invokes:
 
 > **AI calls:** `search_tools({ "query": "read files from disk" })`
 >
-> **smartmcp returns:** 3 matching tools from the filesystem server. Their full schemas are now exposed.
+> **smartmcp returns:** JSON with up to top-k matches. Each match includes a `target` (such as `filesystem__read_file`), the upstream tool's `description`, and the full `input_schema`.
 >
-> **AI sees:** The complete parameter definitions for `filesystem__read_file`, `filesystem__list_directory`, etc. It picks the right one, fills in the arguments, and calls it.
+> **AI sees:** The complete parameter definitions inside each match. It picks the right one, builds `arguments` against that match's `input_schema`, and calls `call_discovered_tool({ "target": "filesystem__read_file", "arguments": { ... } })`.
 >
-> **smartmcp proxies** the call to the filesystem server and returns the result.
+> **smartmcp proxies** the call to the filesystem server unchanged and returns the result.
 
 ## Configuration reference
 
@@ -160,9 +160,10 @@ Your AI now sees a single `search_tools` tool. When it needs to do something, it
 
 ## Why smartmcp?
 
-- **Less context waste**: Instead of 100 tool schemas in every request, the AI sees 1 tool plus only the few it actually needs.
+- **Less context waste**: Instead of 100 tool schemas in every request, the AI sees a fixed two-tool surface and only inspects the few schemas returned by `search_tools`.
 - **Better tool selection**: Semantic search finds the right tools even when the AI doesn't know the exact name.
-- **Full schema exposure**: Surfaced tools include their complete parameter definitions, so the AI constructs calls correctly.
+- **Full schema in search results**: Each match returned by `search_tools` includes the upstream `input_schema`, so the AI can construct calls correctly without any further `tools/list` refresh.
+- **Client-agnostic**: The tool list never changes mid-session, so smartmcp works with clients that ignore `notifications/tools/list_changed` (such as Qwen Code and similar agents).
 - **Works with any MCP server**: If it speaks MCP over stdio, smartmcp can proxy it.
 - **Drop-in replacement**: Replace your list of MCP servers with one smartmcp entry. No code changes needed.
 - **Graceful degradation**: If some upstream servers fail to connect, smartmcp continues with whatever is available.
