@@ -19,13 +19,15 @@ from smartmcp.upstream import UpstreamManager, parse_prefixed_name
 logger = logging.getLogger(__name__)
 
 SEARCH_TOOLS_NAME = "search_tools"
+CALL_DISCOVERED_TOOL_NAME = "call_discovered_tool"
 
 SEARCH_TOOLS_SCHEMA = types.Tool(
     name=SEARCH_TOOLS_NAME,
     description=(
         "Your gateway to all available tools across connected MCP servers. "
-        "No other tools are visible until you search — call this first to find the right tool for your task. "
-        "Matched tools will be surfaced with their full parameter schemas, ready for you to call directly. "
+        "Call this first to find the right tool for your task. "
+        "Each match returned by search_tools includes a 'target' identifier and the full 'input_schema' "
+        "you must use to call the matched upstream tool through the call_discovered_tool tool. "
         "Always describe the task you want to perform using an action verb and object (for example: "
         "'read the contents of a file from disk' or 'create a new issue in a GitHub repository'). "
         "When you are certain about the product or service you want to use (such as GitHub, Google Drive, Gmail, or Google Calendar), "
@@ -50,6 +52,36 @@ SEARCH_TOOLS_SCHEMA = types.Tool(
             "top_k": {
                 "type": "integer",
                 "description": "Number of tools to return (default: 5)",
+            },
+        },
+    },
+)
+
+CALL_DISCOVERED_TOOL_SCHEMA = types.Tool(
+    name=CALL_DISCOVERED_TOOL_NAME,
+    description=(
+        "Invoke an upstream MCP tool that was returned by search_tools. "
+        "Copy the 'target' value from a search_tools match exactly — do not invent or modify it. "
+        "Build 'arguments' to satisfy the matching tool's 'input_schema' as returned by search_tools. "
+        "Arguments are forwarded to the upstream tool unchanged."
+    ),
+    inputSchema={
+        "type": "object",
+        "required": ["target", "arguments"],
+        "properties": {
+            "target": {
+                "type": "string",
+                "description": (
+                    "The exact 'target' identifier returned by a search_tools match "
+                    "(for example 'github__create_issue'). Do not guess or modify this value."
+                ),
+            },
+            "arguments": {
+                "type": "object",
+                "description": (
+                    "Arguments object that satisfies the matched tool's 'input_schema'. "
+                    "Forwarded to the upstream tool without modification."
+                ),
             },
         },
     },
