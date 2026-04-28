@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import logging
 from collections.abc import AsyncIterator
 from contextlib import asynccontextmanager
@@ -115,6 +116,60 @@ def list_static_tools(state: SmartMCPState) -> list[types.Tool]:
     return [SEARCH_TOOLS_SCHEMA, CALL_DISCOVERED_TOOL_SCHEMA]
 
 
+def _build_search_match(tool: types.Tool, score: float) -> dict[str, Any]:
+    """Serialize a search hit into the contract returned to clients."""
+    try:
+        server_name, original_name = parse_prefixed_name(tool.name)
+    except ValueError:
+        server_name, original_name = "", tool.name
+    return {
+        "target": tool.name,
+        "server": server_name,
+        "name": original_name,
+        "description": tool.description or "",
+        "score": float(score),
+        "input_schema": tool.inputSchema,
+        "invocation": {
+            "tool": CALL_DISCOVERED_TOOL_NAME,
+            "arguments": {
+                "target": tool.name,
+                "arguments": "<object matching input_schema>",
+            },
+        },
+    }
+
+
+async def handle_search_tools(
+    state: SmartMCPState,
+    arguments: dict[str, Any],
+) -> list[types.TextContent]:
+    """Search indexed upstream tools and return JSON matches with full schemas.
+
+    Each match carries the exact ``target`` to pass to ``call_discovered_tool``
+    plus the full upstream ``input_schema``, so a client can invoke the matched
+    tool without requiring any further ``tools/list`` refresh.
+    """
+    query = arguments.get("query", "")
+    top_k = arguments.get("top_k", state.config.top_k)
+    if not query:
+        payload = {"error": "'query' is required", "matches": []}
+        return [types.TextContent(type="text", text=json.dumps(payload, indent=2))]
+
+    try:
+        results = state.index.search(query, top_k=top_k)
+    except Exception as exc:
+        logger.error("Search failed for query '%s': %s", query, exc)
+        payload = {"error": f"Search error: {exc}", "matches": []}
+        return [types.TextContent(type="text", text=json.dumps(payload, indent=2))]
+
+    matches = [_build_search_match(tool, score) for tool, score in results]
+    payload = {
+        "matches": matches,
+        "invocation_tool": CALL_DISCOVERED_TOOL_NAME,
+    }
+    return [types.TextContent(type="text", text=json.dumps(payload, indent=2))]
+
+
 def run_server(config: SmartMCPConfig) -> None:
     """Create and run the smartmcp MCP server over stdio."""
 
@@ -159,21 +214,7 @@ def run_server(config: SmartMCPConfig) -> None:
         state: SmartMCPState = app.request_context.lifespan_context
 
         if name == SEARCH_TOOLS_NAME:
-            query = arguments.get("query", "")
-            top_k = arguments.get("top_k", state.config.top_k)
-            if not query:
-                return [types.TextContent(type="text", text="Error: 'query' is required")]
-
-            try:
-                results = state.index.search(query, top_k=top_k)
-            except Exception as exc:
-                logger.error("Search failed for query '%s': %s", query, exc)
-                return [types.TextContent(type="text", text=f"Search error: {exc}")]
-
-            lines = [f"Found {len(results)} matching tool(s):\n"]
-            for tool, score in results:
-                lines.append(f"- {tool.name} (score: {score:.3f}): {tool.description}")
-            return [types.TextContent(type="text", text="\n".join(lines))]
+            return await handle_search_tools(state, arguments)
 
         try:
             server_name, original_name = parse_prefixed_name(name)
