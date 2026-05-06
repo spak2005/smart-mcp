@@ -174,6 +174,45 @@ Your AI now sees two tools: `search_tools` and `call_discovered_tool`. When it n
 - **Drop-in replacement**: Replace your list of MCP servers with one smartmcp entry. No code changes needed.
 - **Graceful degradation**: If some upstream servers fail to connect, smartmcp continues with whatever is available.
 
+## Troubleshooting
+
+### `torchvision::nms does not exist` or `Could not import module 'BertModel'`
+
+If smartmcp crashes at startup with one of these errors:
+
+```
+RuntimeError: operator torchvision::nms does not exist
+ModuleNotFoundError: Could not import module 'BertModel'. Are this object's requirements defined correctly?
+```
+
+This is a `torch` / `torchvision` ABI mismatch in your Python environment, not a smartmcp bug. SmartMCP itself does not depend on `torchvision`. The mismatch usually appears after `pip install --upgrade` walks transitive dependencies forward (newer `sentence-transformers` -> newer `transformers` -> newer `torch`) while leaving an older `torchvision` in place. Newer `transformers` eagerly imports the vision pipeline during `BertModel` autoload, so the mismatched `torchvision` extension fails to register the `nms` operator and the whole import chain breaks. Apple Silicon users see this more often because mixing `arm64` and `x86_64` wheels makes the mismatch more likely.
+
+Try these fixes in order:
+
+1. Remove `torchvision`. SmartMCP does not need it:
+
+   ```bash
+   pip uninstall -y torchvision
+   ```
+
+2. Reset the torch stack so torch and torchvision share an ABI:
+
+   ```bash
+   pip uninstall -y torch torchvision torchaudio
+   pip install --upgrade torch
+   ```
+
+3. Recreate a clean venv (most reliable on Apple Silicon):
+
+   ```bash
+   python3 -m venv ~/.venvs/smartmcp
+   source ~/.venvs/smartmcp/bin/activate
+   pip install --upgrade pip
+   pip install smartmcp-router
+   ```
+
+Installing with `pipx` (see [Installation](#installation)) avoids this class of issue altogether by giving SmartMCP its own isolated environment.
+
 ## Contributing
 
 smartmcp is early-stage and actively improving. Contributions are welcome, especially around search accuracy, embedding strategies, and support for new transports.
