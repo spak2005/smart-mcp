@@ -60,6 +60,12 @@ pip install smartmcp-router
 
 Requires Python 3.10+.
 
+Recommended on macOS, especially Apple Silicon: install with [`pipx`](https://pipx.pypa.io/) so SmartMCP gets an isolated environment that cannot inherit a stale `torch` or `torchvision` from other projects. This avoids the most common class of install issues (see [Troubleshooting](#troubleshooting)).
+
+```bash
+pipx install smartmcp-router
+```
+
 ## Quick start
 
 ### 1. Create a config file
